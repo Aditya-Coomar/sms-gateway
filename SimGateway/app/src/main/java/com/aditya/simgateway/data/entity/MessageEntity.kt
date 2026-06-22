@@ -18,17 +18,19 @@ data class MessageEntity(
     val body: String,
     val simSlot: Int,
     val status: MessageStatus,
+    val retryCount: Int,
     val createdAt: Long,
     val sentAt: Long?,
     val deliveredAt: Long?,
-    val errorMessage: String?
+    val failureReason: String?
 )
 
 enum class MessageStatus {
+    CREATED,
     QUEUED,
-    PENDING,
     SENDING,
     SENT,
     DELIVERED,
-    FAILED
+    FAILED,
+    RETRYING
 }

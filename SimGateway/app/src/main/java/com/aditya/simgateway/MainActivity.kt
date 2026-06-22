@@ -20,23 +20,22 @@ class MainActivity : ComponentActivity() {
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { _ ->
-        // Start the service regardless of permission result.
-        // The foreground service notification is shown even without
-        // POST_NOTIFICATIONS on Android 13+, but granting it ensures
-        // full visibility in the notification shade.
         EventLogger.logInfo(
             source = "MainActivity",
             message = "Notification permission flow completed"
         )
         startGatewayService()
-        requestPhoneStatePermission()
+        requestRuntimePermissions()
     }
 
-    private val phoneStatePermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { _ ->
-        // SIM data will populate on next refresh cycle if granted.
-        // No action needed on denial — SimInfoProvider gracefully returns empty list.
+    private val runtimePermissionsLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        EventLogger.logInfo(
+            source = "MainActivity",
+            message = "Runtime permission flow completed",
+            payload = permissions.entries.joinToString { "${it.key}=${it.value}" }
+        )
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -60,32 +59,32 @@ class MainActivity : ComponentActivity() {
                 ) == PackageManager.PERMISSION_GRANTED
             ) {
                 startGatewayService()
-                requestPhoneStatePermission()
+                requestRuntimePermissions()
             } else {
-                notificationPermissionLauncher.launch(
-                    Manifest.permission.POST_NOTIFICATIONS
-                )
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
         } else {
-            // Pre-Android 13: no runtime permission needed for notifications
             startGatewayService()
-            requestPhoneStatePermission()
+            requestRuntimePermissions()
         }
     }
 
-    private fun requestPhoneStatePermission() {
-        if (ContextCompat.checkSelfPermission(
-                this,
-                Manifest.permission.READ_PHONE_STATE
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
+    private fun requestRuntimePermissions() {
+        val missingPermissions = listOf(
+            Manifest.permission.READ_PHONE_STATE,
+            Manifest.permission.SEND_SMS,
+            Manifest.permission.RECEIVE_SMS
+        ).filter { permission ->
+            ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED
+        }
+
+        if (missingPermissions.isNotEmpty()) {
             EventLogger.logInfo(
                 source = "MainActivity",
-                message = "Requesting phone state permission"
+                message = "Requesting runtime permissions",
+                payload = missingPermissions.joinToString()
             )
-            phoneStatePermissionLauncher.launch(
-                Manifest.permission.READ_PHONE_STATE
-            )
+            runtimePermissionsLauncher.launch(missingPermissions.toTypedArray())
         }
     }
 

@@ -10,6 +10,9 @@ data class DeviceConfigEntity(
     val serverUrl: String?,
     val deviceToken: String?,
     val paired: Boolean,
+    val defaultSimSlot: Int?,
+    val maxRetryCount: Int,
+    val deliveryReportsEnabled: Boolean,
     val createdAt: Long,
     val updatedAt: Long
 )

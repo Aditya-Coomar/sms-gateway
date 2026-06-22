@@ -14,37 +14,33 @@ class MessageRepository(
         recipient: String,
         body: String,
         simSlot: Int,
-        status: MessageStatus = MessageStatus.QUEUED
-    ): String {
+        status: MessageStatus = MessageStatus.CREATED
+    ): MessageEntity {
         val messageId = UUID.randomUUID().toString()
-        messageDao.insertMessage(
-            MessageEntity(
-                id = messageId,
-                recipient = recipient,
-                body = body,
-                simSlot = simSlot,
-                status = status,
-                createdAt = System.currentTimeMillis(),
-                sentAt = null,
-                deliveredAt = null,
-                errorMessage = null
-            )
+        val message = MessageEntity(
+            id = messageId,
+            recipient = recipient,
+            body = body,
+            simSlot = simSlot,
+            status = status,
+            retryCount = 0,
+            createdAt = System.currentTimeMillis(),
+            sentAt = null,
+            deliveredAt = null,
+            failureReason = null
         )
+        messageDao.insertMessage(message)
         trimOldMessages()
-        return messageId
+        return message
     }
 
-    suspend fun updateMessageStatus(
-        id: String,
-        status: MessageStatus,
-        sentAt: Long? = null,
-        deliveredAt: Long? = null,
-        errorMessage: String? = null
-    ) {
-        messageDao.updateStatus(id, status, sentAt, deliveredAt, errorMessage)
+    suspend fun upsertMessage(message: MessageEntity) {
+        messageDao.insertMessage(message)
     }
 
     suspend fun getMessageById(id: String): MessageEntity? = messageDao.getById(id)
+
+    fun observeMessageById(id: String): Flow<MessageEntity?> = messageDao.observeById(id)
 
     fun fetchMessageHistory(): Flow<List<MessageEntity>> = messageDao.getAll()
 

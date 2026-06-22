@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.aditya.simgateway.SimGatewayApplication
 import com.aditya.simgateway.core.diagnostics.EventCategory
 import com.aditya.simgateway.data.entity.EventLogEntity
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -26,6 +27,7 @@ enum class LogFilter(
     DEVICE("Device", EventCategory.DEVICE)
 }
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class LogsViewModel(application: Application) : AndroidViewModel(application) {
 
     private val eventRepository = (application as SimGatewayApplication)

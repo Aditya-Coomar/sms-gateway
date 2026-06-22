@@ -1,10 +1,10 @@
 package com.aditya.simgateway.presentation.settings
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -68,7 +68,7 @@ fun SettingsScreen(
                 onValueChange = viewModel::updateServerUrl,
                 label = { Text("Server URL") },
                 singleLine = true,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(12.dp))
             OutlinedTextField(
@@ -76,7 +76,24 @@ fun SettingsScreen(
                 onValueChange = viewModel::updateDeviceToken,
                 label = { Text("Device Token") },
                 singleLine = true,
-                modifier = Modifier.fillMaxSize()
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            OutlinedTextField(
+                value = state.defaultSimSlot,
+                onValueChange = viewModel::updateDefaultSimSlot,
+                label = { Text("Default SIM Slot") },
+                placeholder = { Text("1 or 2") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            OutlinedTextField(
+                value = state.retryCount,
+                onValueChange = viewModel::updateRetryCount,
+                label = { Text("Retry Count") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth()
             )
             Spacer(modifier = Modifier.height(12.dp))
             InfoRow(
@@ -87,6 +104,16 @@ fun SettingsScreen(
             Switch(
                 checked = state.paired,
                 onCheckedChange = viewModel::updatePaired
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            InfoRow(
+                label = "Delivery Reports",
+                value = if (state.deliveryReportsEnabled) "Enabled" else "Disabled",
+                valueColor = if (state.deliveryReportsEnabled) GatewayGreen else TextSecondary
+            )
+            Switch(
+                checked = state.deliveryReportsEnabled,
+                onCheckedChange = viewModel::updateDeliveryReportsEnabled
             )
             Spacer(modifier = Modifier.height(12.dp))
             InfoRow(

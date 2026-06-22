@@ -11,7 +11,10 @@ class DeviceRepository(
     suspend fun saveConfig(
         serverUrl: String?,
         deviceToken: String?,
-        paired: Boolean
+        paired: Boolean,
+        defaultSimSlot: Int?,
+        maxRetryCount: Int,
+        deliveryReportsEnabled: Boolean
     ) {
         val now = System.currentTimeMillis()
         val existingConfig = deviceConfigDao.getConfig()
@@ -20,6 +23,9 @@ class DeviceRepository(
                 serverUrl = serverUrl,
                 deviceToken = deviceToken,
                 paired = paired,
+                defaultSimSlot = defaultSimSlot,
+                maxRetryCount = maxRetryCount,
+                deliveryReportsEnabled = deliveryReportsEnabled,
                 createdAt = existingConfig?.createdAt ?: now,
                 updatedAt = now
             )
@@ -38,6 +44,9 @@ class DeviceRepository(
                 serverUrl = existingConfig?.serverUrl,
                 deviceToken = existingConfig?.deviceToken,
                 paired = paired,
+                defaultSimSlot = existingConfig?.defaultSimSlot,
+                maxRetryCount = existingConfig?.maxRetryCount ?: DEFAULT_MAX_RETRY_COUNT,
+                deliveryReportsEnabled = existingConfig?.deliveryReportsEnabled ?: true,
                 createdAt = existingConfig?.createdAt ?: now,
                 updatedAt = now
             )
@@ -46,5 +55,9 @@ class DeviceRepository(
 
     suspend fun deleteConfig() {
         deviceConfigDao.deleteConfig()
+    }
+
+    companion object {
+        const val DEFAULT_MAX_RETRY_COUNT = 4
     }
 }

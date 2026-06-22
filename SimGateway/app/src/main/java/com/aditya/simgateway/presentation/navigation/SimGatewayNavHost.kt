@@ -1,11 +1,13 @@
 package com.aditya.simgateway.presentation.navigation
 
+import android.net.Uri
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Article
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Phone
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material.icons.filled.Sms
+import androidx.compose.material.icons.automirrored.filled.Article
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -27,10 +29,13 @@ import androidx.navigation.compose.rememberNavController
 import com.aditya.simgateway.presentation.dashboard.DashboardScreen
 import com.aditya.simgateway.presentation.device.DeviceScreen
 import com.aditya.simgateway.presentation.logs.LogsScreen
+import com.aditya.simgateway.presentation.messages.MessageDetailsScreen
+import com.aditya.simgateway.presentation.messages.MessagesScreen
+import com.aditya.simgateway.presentation.messages.TestSmsScreen
+import com.aditya.simgateway.presentation.settings.SettingsScreen
 import com.aditya.simgateway.ui.theme.DarkCard
 import com.aditya.simgateway.ui.theme.DarkSurface
 import com.aditya.simgateway.ui.theme.TextSecondary
-import com.aditya.simgateway.presentation.settings.SettingsScreen
 
 sealed class Screen(
     val route: String,
@@ -38,13 +43,15 @@ sealed class Screen(
     val icon: ImageVector
 ) {
     data object Dashboard : Screen("dashboard", "Dashboard", Icons.Default.Home)
-    data object Logs : Screen("logs", "Logs", Icons.Default.Article)
+    data object Messages : Screen("messages", "Messages", Icons.Default.Sms)
+    data object Logs : Screen("logs", "Logs", Icons.AutoMirrored.Filled.Article)
     data object Device : Screen("device", "Device", Icons.Default.Phone)
     data object Settings : Screen("settings", "Settings", Icons.Default.Settings)
 }
 
 private val screens = listOf(
     Screen.Dashboard,
+    Screen.Messages,
     Screen.Logs,
     Screen.Device,
     Screen.Settings
@@ -108,6 +115,16 @@ fun SimGatewayNavHost() {
             composable(Screen.Dashboard.route) {
                 DashboardScreen()
             }
+            composable(Screen.Messages.route) {
+                MessagesScreen(
+                    onOpenMessageDetails = { messageId ->
+                        navController.navigate("messageDetails/${Uri.encode(messageId)}")
+                    },
+                    onOpenTestSms = {
+                        navController.navigate("testSms")
+                    }
+                )
+            }
             composable(Screen.Logs.route) {
                 LogsScreen()
             }
@@ -116,6 +133,18 @@ fun SimGatewayNavHost() {
             }
             composable(Screen.Settings.route) {
                 SettingsScreen()
+            }
+            composable("messageDetails/{messageId}") { backStackEntry ->
+                val messageId = backStackEntry.arguments?.getString("messageId").orEmpty()
+                MessageDetailsScreen(
+                    messageId = messageId,
+                    onBack = navController::popBackStack
+                )
+            }
+            composable("testSms") {
+                TestSmsScreen(
+                    onBack = navController::popBackStack
+                )
             }
         }
     }

@@ -6,6 +6,11 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.ProcessLifecycleOwner
 import com.aditya.simgateway.core.diagnostics.EventCategory
 import com.aditya.simgateway.core.diagnostics.EventLogger
+import com.aditya.simgateway.core.sms.SimRouter
+import com.aditya.simgateway.core.sms.SmsDispatcher
+import com.aditya.simgateway.core.sms.SmsGatewayManager
+import com.aditya.simgateway.core.sms.SmsRetryManager
+import com.aditya.simgateway.core.sms.SmsValidator
 import com.aditya.simgateway.data.database.GatewayDatabase
 import com.aditya.simgateway.data.repository.DeviceRepository
 import com.aditya.simgateway.data.repository.EventRepository
@@ -16,7 +21,7 @@ import kotlinx.coroutines.SupervisorJob
 
 class SimGatewayApplication : Application(), DefaultLifecycleObserver {
 
-    private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+    private val internalApplicationScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
     lateinit var appContainer: AppContainer
         private set
@@ -25,15 +30,28 @@ class SimGatewayApplication : Application(), DefaultLifecycleObserver {
         super<Application>.onCreate()
 
         val database = GatewayDatabase.create(this)
+        val deviceRepository = DeviceRepository(database.deviceConfigDao())
+        val messageRepository = MessageRepository(database.messageDao())
+        val eventRepository = EventRepository(database.eventLogDao())
+        val smsGatewayManager = SmsGatewayManager(
+            messageRepository = messageRepository,
+            deviceRepository = deviceRepository,
+            validator = SmsValidator(),
+            simRouter = SimRouter(this),
+            dispatcher = SmsDispatcher(this),
+            retryManager = SmsRetryManager(internalApplicationScope)
+        )
         appContainer = AppContainer(
-            deviceRepository = DeviceRepository(database.deviceConfigDao()),
-            messageRepository = MessageRepository(database.messageDao()),
-            eventRepository = EventRepository(database.eventLogDao())
+            applicationScope = internalApplicationScope,
+            deviceRepository = deviceRepository,
+            messageRepository = messageRepository,
+            eventRepository = eventRepository,
+            smsGatewayManager = smsGatewayManager
         )
 
         EventLogger.initialize(
             repository = appContainer.eventRepository,
-            scope = applicationScope
+            scope = internalApplicationScope
         )
         EventLogger.logEvent(
             category = EventCategory.SYSTEM,
@@ -54,7 +72,9 @@ class SimGatewayApplication : Application(), DefaultLifecycleObserver {
 }
 
 data class AppContainer(
+    val applicationScope: CoroutineScope,
     val deviceRepository: DeviceRepository,
     val messageRepository: MessageRepository,
-    val eventRepository: EventRepository
+    val eventRepository: EventRepository,
+    val smsGatewayManager: SmsGatewayManager
 )

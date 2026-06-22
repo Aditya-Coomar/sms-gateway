@@ -8,6 +8,11 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.SEND_SMS" />
+    <uses-permission android:name="android.permission.RECEIVE_SMS" />
+    <uses-feature
+        android:name="android.hardware.telephony"
+        android:required="false" />
 
     <application
         android:name=".SimGatewayApplication"
@@ -36,6 +41,14 @@
             android:name=".services.GatewayForegroundService"
             android:exported="false"
             android:foregroundServiceType="dataSync" />
+
+        <receiver
+            android:name=".receivers.SmsSentReceiver"
+            android:exported="false" />
+
+        <receiver
+            android:name=".receivers.SmsDeliveredReceiver"
+            android:exported="false" />
     </application>
 
 </manifest>
