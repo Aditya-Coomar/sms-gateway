@@ -2,8 +2,10 @@ package com.aditya.simgateway.presentation.navigation
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Article
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Phone
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -24,9 +26,11 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.aditya.simgateway.presentation.dashboard.DashboardScreen
 import com.aditya.simgateway.presentation.device.DeviceScreen
+import com.aditya.simgateway.presentation.logs.LogsScreen
 import com.aditya.simgateway.ui.theme.DarkCard
 import com.aditya.simgateway.ui.theme.DarkSurface
 import com.aditya.simgateway.ui.theme.TextSecondary
+import com.aditya.simgateway.presentation.settings.SettingsScreen
 
 sealed class Screen(
     val route: String,
@@ -34,10 +38,17 @@ sealed class Screen(
     val icon: ImageVector
 ) {
     data object Dashboard : Screen("dashboard", "Dashboard", Icons.Default.Home)
+    data object Logs : Screen("logs", "Logs", Icons.Default.Article)
     data object Device : Screen("device", "Device", Icons.Default.Phone)
+    data object Settings : Screen("settings", "Settings", Icons.Default.Settings)
 }
 
-private val screens = listOf(Screen.Dashboard, Screen.Device)
+private val screens = listOf(
+    Screen.Dashboard,
+    Screen.Logs,
+    Screen.Device,
+    Screen.Settings
+)
 
 @Composable
 fun SimGatewayNavHost() {
@@ -97,8 +108,14 @@ fun SimGatewayNavHost() {
             composable(Screen.Dashboard.route) {
                 DashboardScreen()
             }
+            composable(Screen.Logs.route) {
+                LogsScreen()
+            }
             composable(Screen.Device.route) {
                 DeviceScreen()
+            }
+            composable(Screen.Settings.route) {
+                SettingsScreen()
             }
         }
     }

@@ -3,6 +3,8 @@ package com.aditya.simgateway.presentation.dashboard
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.aditya.simgateway.core.diagnostics.EventCategory
+import com.aditya.simgateway.core.diagnostics.EventLogger
 import com.aditya.simgateway.core.device.BatteryInfoProvider
 import com.aditya.simgateway.core.device.GatewayHealthProvider
 import com.aditya.simgateway.core.device.NetworkInfoProvider
@@ -46,6 +48,8 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
     private val _uiState = MutableStateFlow(DashboardUiState())
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
+    private var hasLoggedInitialSnapshot = false
+
     init {
         startPeriodicRefresh()
     }
@@ -61,11 +65,51 @@ class DashboardViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun refreshData() {
         val context = getApplication<Application>()
-        _uiState.value = DashboardUiState(
+        val nextState = DashboardUiState(
             health = GatewayHealthProvider.getHealth(),
             battery = batteryInfoProvider.getBatteryInfo(context),
             network = networkInfoProvider.getNetworkInfo(context),
             simCards = simInfoProvider.getSimInfo(context)
         )
+
+        logStateTransitions(previous = _uiState.value, current = nextState)
+        _uiState.value = nextState
+    }
+
+    private fun logStateTransitions(
+        previous: DashboardUiState,
+        current: DashboardUiState
+    ) {
+        if (!hasLoggedInitialSnapshot) {
+            hasLoggedInitialSnapshot = true
+            return
+        }
+
+        if (previous.network != current.network) {
+            EventLogger.logEvent(
+                category = EventCategory.NETWORK,
+                source = "DashboardViewModel",
+                message = "Network changed to ${current.network.networkType}",
+                payload = "connected=${current.network.connected}, metered=${current.network.metered}"
+            )
+        }
+
+        if (previous.simCards != current.simCards) {
+            EventLogger.logEvent(
+                category = EventCategory.DEVICE,
+                source = "DashboardViewModel",
+                message = "SIM configuration changed",
+                payload = "simCount=${current.simCards.size}"
+            )
+        }
+
+        if (previous.battery.level > 20 || previous.battery.level == -1) {
+            if (current.battery.level in 0..20) {
+                EventLogger.logWarning(
+                    source = "DashboardViewModel",
+                    message = "Battery low: ${current.battery.level}%"
+                )
+            }
+        }
     }
 }

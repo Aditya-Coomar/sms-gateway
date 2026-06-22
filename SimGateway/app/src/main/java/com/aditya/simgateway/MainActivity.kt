@@ -10,6 +10,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import com.aditya.simgateway.core.diagnostics.EventLogger
 import com.aditya.simgateway.presentation.navigation.SimGatewayNavHost
 import com.aditya.simgateway.services.GatewayForegroundService
 import com.aditya.simgateway.ui.theme.SimGatewayTheme
@@ -23,6 +24,10 @@ class MainActivity : ComponentActivity() {
         // The foreground service notification is shown even without
         // POST_NOTIFICATIONS on Android 13+, but granting it ensures
         // full visibility in the notification shade.
+        EventLogger.logInfo(
+            source = "MainActivity",
+            message = "Notification permission flow completed"
+        )
         startGatewayService()
         requestPhoneStatePermission()
     }
@@ -74,6 +79,10 @@ class MainActivity : ComponentActivity() {
                 Manifest.permission.READ_PHONE_STATE
             ) != PackageManager.PERMISSION_GRANTED
         ) {
+            EventLogger.logInfo(
+                source = "MainActivity",
+                message = "Requesting phone state permission"
+            )
             phoneStatePermissionLauncher.launch(
                 Manifest.permission.READ_PHONE_STATE
             )

@@ -9,6 +9,8 @@ import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
+import com.aditya.simgateway.core.diagnostics.EventCategory
+import com.aditya.simgateway.core.diagnostics.EventLogger
 import com.aditya.simgateway.core.device.GatewayHealthProvider
 
 class GatewayForegroundService : Service() {
@@ -21,6 +23,11 @@ class GatewayForegroundService : Service() {
     override fun onCreate() {
         super.onCreate()
         GatewayHealthProvider.onServiceStarted()
+        EventLogger.logEvent(
+            category = EventCategory.SYSTEM,
+            source = "GatewayForegroundService",
+            message = "Foreground service started"
+        )
         createNotificationChannel()
         val notification = createNotification()
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -36,6 +43,11 @@ class GatewayForegroundService : Service() {
 
     override fun onDestroy() {
         GatewayHealthProvider.onServiceStopped()
+        EventLogger.logEvent(
+            category = EventCategory.SYSTEM,
+            source = "GatewayForegroundService",
+            message = "Foreground service stopped"
+        )
         super.onDestroy()
     }
 
