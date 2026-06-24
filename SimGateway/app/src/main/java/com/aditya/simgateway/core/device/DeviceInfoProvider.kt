@@ -2,26 +2,13 @@ package com.aditya.simgateway.core.device
 
 import android.content.Context
 import android.os.Build
-import androidx.datastore.core.DataStore
-import androidx.datastore.preferences.core.Preferences
-import androidx.datastore.preferences.core.edit
-import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStore
+import android.provider.Settings
 import com.aditya.simgateway.domain.model.DeviceInfo
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
-import java.util.UUID
-
-private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "device_prefs")
 
 class DeviceInfoProvider(private val context: Context) {
 
-    companion object {
-        private val DEVICE_ID_KEY = stringPreferencesKey("device_id")
-    }
-
     suspend fun getDeviceInfo(): DeviceInfo {
-        val deviceId = getOrCreateDeviceId()
+        val deviceId = getStableDeviceId()
         return DeviceInfo(
             deviceId = deviceId,
             manufacturer = Build.MANUFACTURER,
@@ -30,17 +17,20 @@ class DeviceInfoProvider(private val context: Context) {
         )
     }
 
-    private suspend fun getOrCreateDeviceId(): String {
-        val existing = context.dataStore.data
-            .map { prefs -> prefs[DEVICE_ID_KEY] }
-            .first()
+    private fun getStableDeviceId(): String {
+        val androidId = Settings.Secure.getString(
+            context.contentResolver,
+            Settings.Secure.ANDROID_ID
+        )?.lowercase().orEmpty()
 
-        if (existing != null) return existing
-
-        val newId = UUID.randomUUID().toString()
-        context.dataStore.edit { prefs ->
-            prefs[DEVICE_ID_KEY] = newId
+        return if (androidId.isNotBlank() && androidId != UNKNOWN_ANDROID_ID) {
+            "dev_$androidId"
+        } else {
+            "dev_${Build.BRAND.lowercase()}_${Build.MODEL.lowercase()}"
         }
-        return newId
+    }
+
+    private companion object {
+        const val UNKNOWN_ANDROID_ID = "9774d56d682e549c"
     }
 }

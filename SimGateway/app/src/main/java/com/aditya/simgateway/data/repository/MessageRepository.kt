@@ -1,10 +1,10 @@
 package com.aditya.simgateway.data.repository
 
+import com.aditya.simgateway.core.common.CompactIdGenerator
 import com.aditya.simgateway.data.dao.MessageDao
 import com.aditya.simgateway.data.entity.MessageEntity
 import com.aditya.simgateway.data.entity.MessageStatus
 import kotlinx.coroutines.flow.Flow
-import java.util.UUID
 
 class MessageRepository(
     private val messageDao: MessageDao
@@ -16,7 +16,7 @@ class MessageRepository(
         simSlot: Int,
         status: MessageStatus = MessageStatus.CREATED
     ): MessageEntity {
-        val messageId = UUID.randomUUID().toString()
+        val messageId = CompactIdGenerator.newId(prefix = "msg")
         val message = MessageEntity(
             id = messageId,
             recipient = recipient,

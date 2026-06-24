@@ -1,6 +1,7 @@
 package com.aditya.simgateway.core.sms
 
 import android.app.Activity
+import android.telephony.SmsManager
 import com.aditya.simgateway.core.diagnostics.EventCategory
 import com.aditya.simgateway.core.diagnostics.EventLogger
 import com.aditya.simgateway.data.entity.MessageEntity
@@ -92,21 +93,36 @@ class SmsGatewayManager(
         resultCode: Int
     ) {
         val existingMessage = messageRepository.getMessageById(messageId) ?: return
-        if (resultCode == Activity.RESULT_OK) {
-            val sentMessage = existingMessage.copy(
-                status = MessageStatus.SENT,
-                sentAt = System.currentTimeMillis(),
-                failureReason = null
-            )
-            messageRepository.upsertMessage(sentMessage)
-            EventLogger.logEvent(
-                category = EventCategory.SMS,
-                source = "SmsSentReceiver",
-                message = "SMS sent",
-                payload = "messageId=${sentMessage.id}"
-            )
-        } else {
-            handleSendFailure(existingMessage, "SMS sending failed (code=$resultCode)")
+        when (resultCode) {
+            Activity.RESULT_OK -> {
+                val sentMessage = existingMessage.copy(
+                    status = MessageStatus.SENT,
+                    sentAt = existingMessage.sentAt ?: System.currentTimeMillis(),
+                    failureReason = null
+                )
+                messageRepository.upsertMessage(sentMessage)
+                EventLogger.logEvent(
+                    category = EventCategory.SMS,
+                    source = "SmsSentReceiver",
+                    message = "SMS sent",
+                    payload = "messageId=${sentMessage.id}"
+                )
+            }
+
+            SmsManager.RESULT_ERROR_GENERIC_FAILURE,
+            SmsManager.RESULT_ERROR_NO_SERVICE,
+            SmsManager.RESULT_ERROR_NULL_PDU,
+            SmsManager.RESULT_ERROR_RADIO_OFF -> {
+                handleSendFailure(existingMessage, "SMS sending failed (code=$resultCode)")
+            }
+
+            else -> {
+                EventLogger.logWarning(
+                    source = "SmsSentReceiver",
+                    message = "Ignoring non-fatal sent callback result",
+                    payload = "messageId=${existingMessage.id}, resultCode=$resultCode"
+                )
+            }
         }
     }
 
@@ -141,29 +157,31 @@ class SmsGatewayManager(
 
     private suspend fun dispatchMessage(message: MessageEntity): SmsSendResult {
         return runCatching {
-            val sendingMessage = message.copy(
-                status = MessageStatus.SENDING,
+            val now = System.currentTimeMillis()
+            val sentMessage = message.copy(
+                status = MessageStatus.SENT,
+                sentAt = now,
                 failureReason = null
             )
-            messageRepository.upsertMessage(sendingMessage)
+            messageRepository.upsertMessage(sentMessage)
 
             val config = deviceRepository.loadConfig()
-            val smsManager = simRouter.getSmsManager(sendingMessage.simSlot)
+            val smsManager = simRouter.getSmsManager(sentMessage.simSlot)
             dispatcher.dispatch(
-                messageId = sendingMessage.id,
-                recipient = sendingMessage.recipient,
-                body = sendingMessage.body,
-                simSlot = sendingMessage.simSlot,
+                messageId = sentMessage.id,
+                recipient = sentMessage.recipient,
+                body = sentMessage.body,
+                simSlot = sentMessage.simSlot,
                 smsManager = smsManager,
                 requestDeliveryReport = config?.deliveryReportsEnabled ?: true
             )
             EventLogger.logEvent(
                 category = EventCategory.SMS,
                 source = "SmsGatewayManager",
-                message = "SMS sending started",
-                payload = "messageId=${sendingMessage.id}"
+                message = "SMS dispatched to framework",
+                payload = "messageId=${sentMessage.id}"
             )
-            SmsSendResult.Success(sendingMessage.id)
+            SmsSendResult.Success(sentMessage.id)
         }.getOrElse { throwable ->
             handleSendFailure(message, throwable.message ?: "Unknown SMS send failure")
             SmsSendResult.Failure(throwable.message ?: "Unknown SMS send failure")
@@ -195,6 +213,7 @@ class SmsGatewayManager(
             onRetry = ::retryMessage
         )
     }
+
 }
 
 sealed interface SmsSendResult {

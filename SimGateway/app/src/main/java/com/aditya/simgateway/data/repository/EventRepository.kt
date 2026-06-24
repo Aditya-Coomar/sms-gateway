@@ -1,10 +1,10 @@
 package com.aditya.simgateway.data.repository
 
+import com.aditya.simgateway.core.common.CompactIdGenerator
 import com.aditya.simgateway.core.diagnostics.EventCategory
 import com.aditya.simgateway.data.dao.EventLogDao
 import com.aditya.simgateway.data.entity.EventLogEntity
 import kotlinx.coroutines.flow.Flow
-import java.util.UUID
 
 class EventRepository(
     private val eventLogDao: EventLogDao
@@ -18,7 +18,7 @@ class EventRepository(
     ) {
         eventLogDao.insertEvent(
             EventLogEntity(
-                id = UUID.randomUUID().toString(),
+                id = CompactIdGenerator.newId(prefix = "evt"),
                 type = type,
                 source = source,
                 message = message,
